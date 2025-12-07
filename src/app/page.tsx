@@ -86,6 +86,12 @@ function HomeInner() {
 
   const chatInputRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const [currentHandle, setCurrentHandle] = useState<string | null>(null);
+  const [editingHandle, setEditingHandle] = useState(false);
+  const [handleDraft, setHandleDraft] = useState("");
+  const [handleError, setHandleError] = useState<string | null>(null);
+  const [handleSaving, setHandleSaving] = useState(false);
+
   const [friendIdInput, setFriendIdInput] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -218,6 +224,14 @@ function HomeInner() {
       clearInterval(id);
     };
   }, [activePeerHandle]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const raw = (session.user as any)?.handle as string | undefined;
+    if (raw && !currentHandle) {
+      setCurrentHandle(raw);
+    }
+  }, [status, session, currentHandle]);
 
   // While auth is loading, keep users on a neutral loading state
   if (status === "loading") {
@@ -517,8 +531,80 @@ function HomeInner() {
     }
   };
 
-  const quantumId = (session.user as any)?.handle || "your-id";
+  const quantumId = currentHandle || (session.user as any)?.handle || "your-id";
   const meId = (session.user as any)?.id as string | undefined;
+
+  const validateHandleDraft = (value: string): string | null => {
+    const trimmed = value.trim();
+    const digitCount = (trimmed.match(/\d/g) || []).length;
+    if (!trimmed) return null;
+    if (trimmed.length < 6 || digitCount < 4) {
+      return "Your quantum ID must be at least 6 characters and include at least 4 numbers.";
+    }
+    return null;
+  };
+
+  const startEditingHandle = () => {
+    setHandleDraft(quantumId.replace(/^@/, ""));
+    setHandleError(null);
+    setEditingHandle(true);
+  };
+
+  const cancelEditingHandle = () => {
+    setEditingHandle(false);
+    setHandleDraft("");
+    setHandleError(null);
+  };
+
+  const onHandleDraftChange = (value: string) => {
+    setHandleDraft(value);
+    const msg = validateHandleDraft(value);
+    setHandleError(msg);
+  };
+
+  const saveHandle = async () => {
+    const trimmed = handleDraft.trim();
+    const msg = validateHandleDraft(trimmed);
+    if (msg) {
+      setHandleError(msg);
+      return;
+    }
+
+    if (!trimmed) return;
+
+    setHandleSaving(true);
+    setHandleError(null);
+
+    try {
+      const res = await fetch("/api/user/handle", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handle: trimmed }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setHandleError(
+          data.error ||
+            "We couldn't update your quantum ID. Please review the rules above and try again.",
+        );
+        return;
+      }
+
+      const updatedHandle = (data.user?.handle as string | undefined) || trimmed;
+      setCurrentHandle(updatedHandle);
+      setEditingHandle(false);
+      setHandleDraft("");
+      setHandleError(null);
+    } catch {
+      setHandleError(
+        "We couldn't reach the quantum directory. Please check your connection and try again.",
+      );
+    } finally {
+      setHandleSaving(false);
+    }
+  };
 
   return (
     <main
@@ -596,12 +682,60 @@ function HomeInner() {
             {/* Your Quantum ID + outgoing requests */}
             <div className="mt-4 space-y-3 rounded-2xl border border-slate-600/60 bg-slate-900/70 p-3 text-xs text-slate-300">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-[11px] text-slate-400">
-                  Your Quantum ID
-                </span>
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 font-mono text-[11px] text-cyan-300">
-                  @{quantumId}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono text-[11px] text-slate-400">
+                    Your Quantum ID
+                  </span>
+                  {handleError && (
+                    <span className="flex items-center gap-1 text-[10px] text-amber-300">
+                      <span>⚠</span>
+                      <span>{handleError}</span>
+                    </span>
+                  )}
+                </div>
+                {editingHandle ? (
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
+                        @
+                      </span>
+                      <input
+                        value={handleDraft}
+                        onChange={(e) => onHandleDraftChange(e.target.value)}
+                        className="w-36 rounded-full border border-slate-600/70 bg-slate-900/80 py-1 pl-5 pr-2 text-[11px] text-slate-100 outline-none ring-0 transition focus:border-cyan-400 focus:bg-slate-900"
+                        placeholder="new-id"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={saveHandle}
+                      disabled={handleSaving}
+                      className="rounded-full border border-emerald-400/70 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-60"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEditingHandle}
+                      className="rounded-full border border-slate-600/70 bg-slate-900/60 px-2 py-0.5 text-[10px] font-medium text-slate-300 hover:bg-slate-800/80"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-slate-800 px-2 py-0.5 font-mono text-[11px] text-cyan-300">
+                      @{quantumId}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={startEditingHandle}
+                      className="rounded-full border border-slate-500/70 bg-slate-900/70 px-2 py-0.5 text-[10px] font-medium text-slate-200 hover:border-cyan-400/70 hover:text-cyan-200"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-2">
@@ -999,8 +1133,8 @@ function HomeInner() {
 
                   <div
                     className={
-                      "space-y-2 overflow-y-auto pr-1 " +
-                      (isChatFull ? "flex-1 min-h-0" : "flex-1 max-h-60")
+                      "space-y-2 pr-1 " +
+                      (isChatFull ? "" : "overflow-y-auto flex-1 max-h-60")
                     }
                   >
                     {chatLoading && (
@@ -1059,7 +1193,10 @@ function HomeInner() {
 
                   <form
                     onSubmit={handleChatSubmit}
-                    className="flex items-center gap-2 pt-1"
+                    className={
+                      "flex items-center gap-2 pt-1 " +
+                      (isChatFull ? "sticky bottom-0 pt-2" : "")
+                    }
                   >
                     <div className="relative flex-1">
                       <textarea
