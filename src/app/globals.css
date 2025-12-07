@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+:root {
+  --background: radial-gradient(circle at top, #050816 0, #020617 45%, #020617 100%);
+  --foreground: #e5e7eb;
+}
+
+@theme inline {
+  --color-background: #020617;
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Smooth global transitions for theme changes */
+* {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(circle at top, #050816 0, #020617 45%, #020617 100%);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+/* Glass and glow utilities for sci-fi feel */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(148, 163, 184, 0.15),
+    0 18px 60px rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(22px) saturate(160%);
+}
+
+.neon-border {
+  position: relative;
+}
+
+.neon-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    rgba(56, 189, 248, 0.15),
+    rgba(251, 113, 133, 0.45),
+    rgba(129, 140, 248, 0.35),
+    rgba(56, 189, 248, 0.15)
+  );
+  opacity: 0;
+  transition: opacity 250ms ease-out;
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.neon-border:hover::before {
+  opacity: 1;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(40px);
+  opacity: 0.85;
+  mix-blend-mode: screen;
+}
+
+.orb--cyan {
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.78), transparent 60%);
+}
+
+.orb--violet {
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.9), transparent 60%);
+}
+
+.orb--pink {
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.9), transparent 60%);
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(12px, -18px, 0) scale(1.05);
+  }
+}
+
+.float-slow {
+  animation: float-slow 16s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse-soft {
+  animation: pulse-soft 9s ease-in-out infinite;
+}
+
+@keyframes glow-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.glow-ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  animation: glow-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes arrow-launch {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(-6px) scale(1.05);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.send-arrow {
+  animation: arrow-launch 1.6s ease-in-out infinite;
+  transform-origin: center;
+}
